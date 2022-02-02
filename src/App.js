@@ -1,20 +1,28 @@
 import React from "react";
-import ReactDOM from "react-dom";
 
 import "./index.css";
 import LetterRow from "./LetterRow";
 
-const LENGTH = 5;
+const WORD_LENGTH = 5;
+const NUM_GUESSES = 6;
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.GuessInputField = React.createRef();
   }
+  initGuesses() {
+    var guesses = [];
+    for(var i = 0; i < NUM_GUESSES; i++) {
+      guesses.push(this.fillEmptySpaces(""));
+    }
+    return guesses;
+  }
   state = {
-    guesses: ["     ", "     ", "     ", "     ", "     ", "     "],
+    guesses: this.initGuesses(),
     currentGuessIndex: 0,
-    word: "hello"
+    word: "taken",
+    isGameOver: false
   };
 
   currentGuess() {
@@ -28,7 +36,7 @@ class App extends React.Component {
         <LetterRow
           guess={data}
           word={this.state.word}
-          submitted={id !== this.state.currentGuessIndex}
+          submitted={id !== this.state.currentGuessIndex || this.isGameOver()}
         />
       );
     });
@@ -41,10 +49,11 @@ class App extends React.Component {
             className="GuessInput"
             ref={this.GuessInputField}
             type="text"
-            maxLength={LENGTH}
+            maxLength={WORD_LENGTH}
             onChange={this.updateGuess}
             onKeyPress={this.handleKeypress}
             style={{ marginLeft: "5px", marginRight: "5px" }}
+            disabled={this.isGameOver()}
           />
         </label>
         <input
@@ -52,7 +61,7 @@ class App extends React.Component {
           type="button"
           value="Enter"
           onClick={this.guess}
-          disabled={this.currentGuess().trim().length !== 5}
+          disabled={this.isGameOver() || this.currentGuess().trim().length !== WORD_LENGTH}
         />
       </div>
     );
@@ -70,32 +79,61 @@ class App extends React.Component {
   };
 
   guess = () => {
-    // var guesses = this.state.guesses;
-    // guesses.push("     ");
-    // this.setState((prevState) => ({ guesses: guesses }));
     var currentGuessIndex = this.state.currentGuessIndex;
-    this.setState((prevState) => ({
-      ...prevState,
-      currentGuessIndex: currentGuessIndex + 1
-    }));
-    this.GuessInputField.current.value = "";
+    
+    if(this.currentGuess().toUpperCase() === this.state.word.toUpperCase()) {
+      // WINNER!
+      this.setState((prevState) => ({
+        ...prevState,
+        isGameOver: true
+      }));
+      alert("Congrats, you won! It took " + (currentGuessIndex+1) + " guesses.");
+    } else if(currentGuessIndex === NUM_GUESSES-1) {
+      // loser...
+      this.setState((prevState) => ({
+        ...prevState,
+        isGameOver: true
+      }));
+      alert("WOMP WOMP!? Out of guesses my friend.");
+    } else {
+      // Continue
+      this.setState((prevState) => ({
+        ...prevState,
+        currentGuessIndex: currentGuessIndex + 1
+      }));
+      this.GuessInputField.current.value = "";
+    }
   };
   
   handleKeypress = (e) => {
     //it triggers by pressing the enter key
-    if (e.charCode === 13 && this.currentGuess().trim().length === 5) {
+    if (e.charCode === 13 && this.currentGuess().trim().length === WORD_LENGTH) {
       this.guess();
     }
   };
 
   fillEmptySpaces(word) {
-    var requiredSpaces = LENGTH - word.length;
+    var requiredSpaces = WORD_LENGTH - word.length;
     var filledWord = word;
     for (var i = 0; i < requiredSpaces; i++) {
       filledWord += " ";
     }
     return filledWord;
-  }
+  };
+
+  isPlayerAWinner() {
+    var currentIndex = this.state.currentGuessIndex;
+    if(currentIndex === 0) {
+      return false;
+    }
+
+    var mostRecentGuess = this.state.guesses[currentIndex-1];
+    return mostRecentGuess.toUpperCase() === this.state.word.toUpperCase();
+  };
+
+  isGameOver() {
+    return this.state.isGameOver;
+  };
 }
 
 export default App;
